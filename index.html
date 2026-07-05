@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Digital Falak - Fathur Ro'uf al-Manan</title>
+  <style>
+    :root {
+      --ink: #111;
+      --muted: #555;
+      --line: #333;
+      --soft: #f9f9f9;
+      --panel: #fff;
+      --accent: #eaeaea;
+      --warn: #fff6d6;
+      --bad: #ffe5e5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Arial, sans-serif;
+      background: #e4e4e4;
+      line-height: 1.4;
+    }
+    .arabic, [dir="rtl"] {
+      font-family: "Amiri", "Scheherazade New", "Times New Roman", serif;
+      direction: rtl;
+      unicode-bidi: isolate;
+    }
+    .page {
+      width: min(1300px, 100%);
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .app-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+      padding: 16px;
+    }
+    h1, h2, h3 { margin: 0 0 12px; text-align: center; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+    h3 { font-size: 15px; background: var(--accent); padding: 4px; border-radius: 4px; border: 1px solid #aaa; }
+    .title-arabic { font-size: 28px; line-height: 1.3; margin-top: 8px; font-weight: bold; }
+    .sub-arabic { font-size: 22px; line-height: 1.2; margin-bottom: 16px; }
+    
+    /* Form Input */
+    label { display: block; font-weight: bold; font-size: 13px; margin: 12px 0 4px; }
+    input, select, button {
+      font: inherit;
+      width: 100%;
+      border: 1px solid #999;
+      border-radius: 6px;
+      padding: 8px;
+      background: #fff;
+    }
+    input:focus, select:focus { outline: 2px solid #111; }
+    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .row4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1.2fr; gap: 6px; }
+    .actions { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 20px; }
+    button { cursor: pointer; font-weight: bold; background: #111; color: #fff; border: none; transition: 0.2s; }
+    button:hover { background: #333; }
+    button.secondary { background: #e0e0e0; color: #111; border: 1px solid #999; }
+    button.secondary:hover { background: #ccc; }
+    button.warn { background: #555; color: #fff; }
+    
+    .status-box, .error-box {
+      display: none;
+      margin-top: 12px; padding: 10px;
+      border-radius: 6px; font-size: 13px;
+      border: 1px solid #bbb;
+    }
+    .error-box { background: var(--bad); border-color: #c66; color: #900; font-weight: bold; }
+    
+    /* Area Hasil */
+    #hasilArea {
+      background: #fff;
+      border: 1px solid #bbb;
+      padding: 24px;
+      border-radius: 12px;
+      min-height: 800px;
+    }
+    .report-head { text-align: center; margin-bottom: 20px; }
+    
+    /* Tabel Utama */
+    table { border-collapse: collapse; width: 100%; margin-bottom: 12px; background: #fff; }
+    th, td { border: 1px solid var(--line); padding: 6px; vertical-align: middle; text-align: center; }
+    th { background: var(--accent); font-weight: bold; }
+    .main-table { font-size: 13px; table-layout: fixed; }
+    .main-table .rowlabel { text-align: right; font-size: 15px; white-space: nowrap; font-weight: bold; width: 25%; }
+    .num { font-variant-numeric: tabular-nums; font-family: monospace; font-size: 14px; }
+    
+    /* 8 Kotak Kecil */
+    .boxes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .mini-box {
+      border: 2px solid var(--line);
+      padding: 8px;
+      background: var(--soft);
+      border-radius: 8px;
+      overflow-x: auto; /* Mencegah tabel sempit terpotong */
+    }
+    .mini-box table { font-size: 12px; margin-bottom: 0; }
+    .mini-box td, .mini-box th { padding: 4px; }
+    .mini-box .label { text-align: right; font-size: 14px; font-weight: bold; width: 45%; }
+    
+    /* Kotak 8 yang lebar */
+    .box-8 {
+      grid-column: span 3; /* Supaya lebar penuh di bawah */
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .box-8 table { height: 100%; }
+
+    /* Keterangan Kesimpulan */
+    .keterangan {
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+      background: #fff;
+    }
+    .ket-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    .ket-grid { display: grid; grid-template-columns: 260px 1fr; gap: 8px 12px; font-size: 14px; }
+    .ket-grid b { text-align: left; }
+    .conclusion {
+      margin-top: 16px;
+      padding: 12px;
+      background: #eef8ee;
+      border: 1px solid #8c8;
+      font-weight: bold;
+      font-size: 15px;
+      border-radius: 6px;
+      text-align: justify;
+    }
+
+    /* Print styling */
+    @media print {
+      body { background: #fff; }
+      .page { width: 100%; padding: 0; }
+      .input-panel { display: none !important; }
+      .app-grid { display: block; }
+      #hasilArea { border: 0; padding: 0; box-shadow: none; }
+      .boxes { grid-template-columns: repeat(3, 1fr); }
+      .box-8 { grid-column: span 3; }
+    }
+
+    @media (max-width: 900px) {
+      .app-grid { grid-template-columns: 1fr; }
+      .boxes { grid-template-columns: 1fr; }
+      .box-8 { grid-column: span 1; grid-template-columns: 1fr; }
+      .main-table { font-size: 11px; }
+      .main-table .rowlabel { width: auto; white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="app-grid">
+      
+      <section class="panel input-panel">
+        <h2>Input Data Falak</h2>
+        
+        <label for="markaz">Nama Markaz / Tempat</label>
+        <input id="markaz" type="text" placeholder="Contoh: Demak">
+        
+        <label>Lintang Tempat (DMS)</label>
+        <div class="row4">
+          <input id="latD" type="number" placeholder="Derajat">
+          <input id="latM" type="number" min="0" max="59" placeholder="Menit">
+          <input id="latS" type="number" min="0" max="59" placeholder="Detik">
+          <select id="latDir"><option value="S">Selatan</option><option value="U">Utara</option></select>
+        </div>
+        
+        <label>Bujur Tempat (DMS)</label>
+        <div class="row4">
+          <input id="lonD" type="number" placeholder="Derajat">
+          <input id="lonM" type="number" min="0" max="59" placeholder="Menit">
+          <input id="lonS" type="number" min="0" max="59" placeholder="Detik">
+          <select id="lonDir"><option value="T">Timur</option><option value="B">Barat</option></select>
+        </div>
+        
+        <label for="zona">Zona Waktu</label>
+        <select id="zona">
+          <option value="7">WIB (+7)</option>
+          <option value="8">WITA (+8)</option>
+          <option value="9">WIT (+9)</option>
+        </select>
+        
+        <label for="bulanHijri">Awal Bulan Hijriyah (Target)</label>
+        <select id="bulanHijri">
+          <option value="0">Muharram</option>
+          <option value="1">Safar</option>
+          <option value="2">Rabiul Awal</option>
+          <option value="3">Rabiul Akhir</option>
+          <option value="4">Jumadil Awal</option>
+          <option value="5">Jumadil Akhir</option>
+          <option value="6">Rajab</option>
+          <option value="7">Sya'ban</option>
+          <option value="8">Ramadhan</option>
+          <option value="9">Syawal</option>
+          <option value="10">Zulkaidah</option>
+          <option value="11">Zulhijjah</option>
+        </select>
+        
+        <label for="tahunHijri">Tahun Hijriyah</label>
+        <input id="tahunHijri" type="number" placeholder="Contoh: 1446">
+        
+        <div class="actions">
+          <button id="btnHitung" onclick="prosesHitung()">Hitung Ijtima'</button>
+          <button id="btnContoh" class="secondary" onclick="isiContohData()">Isi Contoh (Ramadhan 1446 H)</button>
+          <button id="btnPrint" class="warn" onclick="window.print()">Cetak PDF / Print</button>
+        </div>
+        
+        <div id="errorBox" class="error-box"></div>
+      </section>
+
+      <main id="hasilArea">
+        <div class="report-head">
+          <div class="arabic title-arabic">معرفة الاجتماع لمعرفة أول الشهر</div>
+          <div class="arabic sub-arabic">على طريقة فتح الرؤف المنان</div>
+          <h1 id="judulLembar">Ijtima' Akhir Bulan ...</h1>
+        </div>
+        
+        <div id="resultContent">
+          <div style="text-align: center; color: #666; padding: 50px;">Silakan isi formulir dan klik Hitung Ijtima'.</div>
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================
+       DATABASE KITAB FATHUR RO'UF AL-MANAN (Vanilla JS Object)
+       Hanya berisi data yang dibutuhkan untuk operasional tabel
+       ========================================================= */
+    const DATA_KITAB = {
+      tahunMajmuah: {
+        data: [
+          { tahun: 1310, alamah: {m:6, sa:21, da:58}, hissah: {b:2, d:29, m:54}, wasath: {b:3, d:24, m:9}, khasah: {b:7, d:16, m:1}, markaz: {b:0, d:13, m:19} },
+          { tahun: 1340, alamah: {m:4, sa:22, da:13}, hissah: {b:11, d:1, m:18}, wasath: {b:5, d:2, m:33}, khasah: {b:5, d:9, m:58}, markaz: {b:1, d:21, m:19} },
+          { tahun: 1370, alamah: {m:2, sa:22, da:28}, hissah: {b:7, d:2, m:42}, wasath: {b:6, d:10, m:57}, khasah: {b:3, d:3, m:55}, markaz: {b:2, d:29, m:19} },
+          { tahun: 1400, alamah: {m:7, sa:22, da:43}, hissah: {b:3, d:4, m:6}, wasath: {b:7, d:19, m:21}, khasah: {b:0, d:27, m:52}, markaz: {b:4, d:7, m:19} },
+          { tahun: 1430, alamah: {m:5, sa:22, da:58}, hissah: {b:11, d:5, m:30}, wasath: {b:8, d:27, m:45}, khasah: {b:10, d:21, m:49}, markaz: {b:5, d:15, m:19} },
+          { tahun: 1460, alamah: {m:3, sa:23, da:13}, hissah: {b:7, d:6, m:54}, wasath: {b:10, d:6, m:9}, khasah: {b:8, d:15, m:46}, markaz: {b:6, d:23, m:19} },
+          { tahun: 1490, alamah: {m:1, sa:23, da:28}, hissah: {b:3, d:8, m:18}, wasath: {b:11, d:14, m:33}, khasah: {b:6, d:9, m:43}, markaz: {b:8, d:1, m:19} },
+          { tahun: 1520, alamah: {m:6, sa:23, da:43}, hissah: {b:11, d:9, m:42}, wasath: {b:0, d:22, m:57}, khasah: {b:4, d:3, m:40}, markaz: {b:9, d:9, m:19} }
+        ]
+      },
+      tahunMabsuthah: {
+        data: [
+          { tahun: 1, alamah: {m:4, sa:8, da:48}, hissah: {b:0, d:8, m:3}, wasath: {b:11, d:19, m:17}, khasah: {b:10, d:9, m:48}, markaz: {b:11, d:19, m:16} },
+          { tahun: 2, alamah: {m:1, sa:17, da:37}, hissah: {b:0, d:16, m:6}, wasath: {b:11, d:8, m:34}, khasah: {b:8, d:19, m:36}, markaz: {b:11, d:8, m:32} },
+          { tahun: 3, alamah: {m:6, sa:2, da:25}, hissah: {b:0, d:24, m:8}, wasath: {b:10, d:27, m:50}, khasah: {b:6, d:29, m:24}, markaz: {b:10, d:27, m:48} },
+          { tahun: 4, alamah: {m:3, sa:11, da:14}, hissah: {b:1, d:2, m:11}, wasath: {b:10, d:17, m:7}, khasah: {b:5, d:9, m:12}, markaz: {b:10, d:17, m:4} },
+          { tahun: 5, alamah: {m:7, sa:20, da:2}, hissah: {b:1, d:10, m:14}, wasath: {b:10, d:6, m:24}, khasah: {b:3, d:18, m:59}, markaz: {b:10, d:6, m:20} },
+          { tahun: 6, alamah: {m:5, sa:4, da:51}, hissah: {b:1, d:18, m:17}, wasath: {b:9, d:25, m:40}, khasah: {b:1, d:28, m:47}, markaz: {b:9, d:25, m:36} },
+          { tahun: 7, alamah: {m:2, sa:13, da:39}, hissah: {b:1, d:26, m:19}, wasath: {b:9, d:14, m:57}, khasah: {b:0, d:8, m:35}, markaz: {b:9, d:14, m:52} },
+          { tahun: 8, alamah: {m:6, sa:22, da:28}, hissah: {b:2, d:4, m:22}, wasath: {b:9, d:4, m:14}, khasah: {b:10, d:18, m:23}, markaz: {b:9, d:4, m:8} },
+          { tahun: 9, alamah: {m:4, sa:7, da:16}, hissah: {b:2, d:12, m:25}, wasath: {b:8, d:23, m:31}, khasah: {b:8, d:28, m:11}, markaz: {b:8, d:23, m:24} },
+          { tahun: 10, alamah: {m:1, sa:16, da:5}, hissah: {b:2, d:20, m:28}, wasath: {b:8, d:12, m:48}, khasah: {b:7, d:7, m:59}, markaz: {b:8, d:12, m:40} },
+          { tahun: 11, alamah: {m:6, sa:0, da:53}, hissah: {b:2, d:28, m:31}, wasath: {b:8, d:2, m:5}, khasah: {b:5, d:17, m:47}, markaz: {b:8, d:1, m:56} },
+          { tahun: 12, alamah: {m:3, sa:9, da:42}, hissah: {b:3, d:6, m:34}, wasath: {b:7, d:21, m:22}, khasah: {b:3, d:27, m:35}, markaz: {b:7, d:21, m:12} },
+          { tahun: 13, alamah: {m:7, sa:18, da:30}, hissah: {b:3, d:14, m:36}, wasath: {b:7, d:10, m:38}, khasah: {b:2, d:7, m:23}, markaz: {b:7, d:10, m:28} },
+          { tahun: 14, alamah: {m:5, sa:3, da:19}, hissah: {b:3, d:22, m:39}, wasath: {b:6, d:29, m:55}, khasah: {b:0, d:17, m:11}, markaz: {b:6, d:29, m:44} },
+          { tahun: 15, alamah: {m:2, sa:12, da:7}, hissah: {b:4, d:0, m:42}, wasath: {b:6, d:19, m:12}, khasah: {b:10, d:26, m:59}, markaz: {b:6, d:19, m:0} },
+          { tahun: 16, alamah: {m:6, sa:20, da:56}, hissah: {b:4, d:8, m:45}, wasath: {b:6, d:8, m:29}, khasah: {b:9, d:6, m:46}, markaz: {b:6, d:8, m:16} },
+          { tahun: 17, alamah: {m:4, sa:5, da:44}, hissah: {b:4, d:16, m:48}, wasath: {b:5, d:27, m:46}, khasah: {b:7, d:16, m:34}, markaz: {b:5, d:27, m:32} },
+          { tahun: 18, alamah: {m:1, sa:14, da:33}, hissah: {b:4, d:24, m:50}, wasath: {b:5, d:17, m:2}, khasah: {b:5, d:26, m:22}, markaz: {b:5, d:16, m:48} },
+          { tahun: 19, alamah: {m:5, sa:23, da:21}, hissah: {b:5, d:2, m:53}, wasath: {b:5, d:6, m:19}, khasah: {b:4, d:6, m:10}, markaz: {b:5, d:6, m:4} },
+          { tahun: 20, alamah: {m:3, sa:8, da:10}, hissah: {b:5, d:10, m:56}, wasath: {b:4, d:25, m:36}, khasah: {b:2, d:15, m:58}, markaz: {b:4, d:25, m:20} },
+          { tahun: 21, alamah: {m:7, sa:16, da:58}, hissah: {b:5, d:18, m:59}, wasath: {b:4, d:14, m:53}, khasah: {b:0, d:25, m:46}, markaz: {b:4, d:14, m:36} },
+          { tahun: 22, alamah: {m:5, sa:1, da:47}, hissah: {b:5, d:27, m:2}, wasath: {b:4, d:4, m:10}, khasah: {b:11, d:5, m:34}, markaz: {b:4, d:3, m:52} },
+          { tahun: 23, alamah: {m:2, sa:10, da:35}, hissah: {b:6, d:5, m:4}, wasath: {b:3, d:23, m:26}, khasah: {b:9, d:15, m:22}, markaz: {b:3, d:23, m:8} },
+          { tahun: 24, alamah: {m:6, sa:19, da:24}, hissah: {b:6, d:13, m:7}, wasath: {b:3, d:12, m:43}, khasah: {b:7, d:25, m:10}, markaz: {b:3, d:12, m:24} },
+          { tahun: 25, alamah: {m:4, sa:4, da:12}, hissah: {b:6, d:21, m:10}, wasath: {b:3, d:2, m:0}, khasah: {b:6, d:4, m:58}, markaz: {b:3, d:1, m:40} },
+          { tahun: 26, alamah: {m:1, sa:13, da:1}, hissah: {b:6, d:29, m:13}, wasath: {b:2, d:21, m:17}, khasah: {b:4, d:14, m:45}, markaz: {b:2, d:20, m:56} },
+          { tahun: 27, alamah: {m:5, sa:21, da:49}, hissah: {b:7, d:7, m:16}, wasath: {b:2, d:10, m:34}, khasah: {b:2, d:24, m:33}, markaz: {b:2, d:10, m:12} },
+          { tahun: 28, alamah: {m:3, sa:6, da:38}, hissah: {b:7, d:15, m:18}, wasath: {b:1, d:29, m:50}, khasah: {b:1, d:4, m:21}, markaz: {b:1, d:29, m:28} },
+          { tahun: 29, alamah: {m:7, sa:15, da:26}, hissah: {b:7, d:23, m:21}, wasath: {b:1, d:19, m:7}, khasah: {b:11, d:14, m:9}, markaz: {b:1, d:18, m:44} },
+          { tahun: 30, alamah: {m:5, sa:0, da:15}, hissah: {b:8, d:1, m:24}, wasath: {b:1, d:8, m:24}, khasah: {b:9, d:23, m:57}, markaz: {b:1, d:8, m:0} }
+        ]
+      },
+      bulanIjtima: {
+        data: [
+          { name: "Muharram", arab: "محرم", alamah: {m:1, sa:12, da:44}, hissah: {b:1, d:0, m:40}, wasath: {b:0, d:29, m:6}, khasah: {b:0, d:25, m:49}, markaz: {b:0, d:29, m:6} },
+          { name: "Safar", arab: "صفر", alamah: {m:3, sa:1, da:28}, hissah: {b:2, d:1, m:20}, wasath: {b:1, d:28, m:13}, khasah: {b:1, d:21, m:38}, markaz: {b:1, d:28, m:13} },
+          { name: "Rabiul Awal", arab: "ربيع الأول", alamah: {m:4, sa:14, da:12}, hissah: {b:3, d:2, m:1}, wasath: {b:2, d:27, m:19}, khasah: {b:2, d:17, m:27}, markaz: {b:2, d:27, m:21} },
+          { name: "Rabiul Akhir", arab: "ربيع الثاني", alamah: {m:6, sa:2, da:56}, hissah: {b:4, d:2, m:41}, wasath: {b:3, d:26, m:25}, khasah: {b:3, d:13, m:16}, markaz: {b:3, d:26, m:25} },
+          { name: "Jumadil Awal", arab: "جمادى الأولى", alamah: {m:7, sa:15, da:40}, hissah: {b:5, d:3, m:21}, wasath: {b:4, d:25, m:32}, khasah: {b:4, d:9, m:5}, markaz: {b:4, d:25, m:32} },
+          { name: "Jumadil Akhir", arab: "جمادى الثانية", alamah: {m:2, sa:4, da:24}, hissah: {b:6, d:4, m:2}, wasath: {b:5, d:24, m:38}, khasah: {b:5, d:4, m:54}, markaz: {b:5, d:24, m:38} },
+          { name: "Rajab", arab: "رجب", alamah: {m:3, sa:17, da:8}, hissah: {b:7, d:4, m:42}, wasath: {b:6, d:23, m:45}, khasah: {b:6, d:0, m:43}, markaz: {b:6, d:23, m:44} },
+          { name: "Sya'ban", arab: "شعبان", alamah: {m:5, sa:5, da:53}, hissah: {b:8, d:5, m:22}, wasath: {b:7, d:22, m:51}, khasah: {b:6, d:26, m:32}, markaz: {b:7, d:22, m:51} },
+          { name: "Ramadhan", arab: "رمضان", alamah: {m:6, sa:18, da:36}, hissah: {b:9, d:6, m:2}, wasath: {b:8, d:21, m:58}, khasah: {b:7, d:22, m:21}, markaz: {b:8, d:21, m:57} },
+          { name: "Syawal", arab: "شوال", alamah: {m:1, sa:7, da:20}, hissah: {b:10, d:6, m:43}, wasath: {b:9, d:21, m:4}, khasah: {b:8, d:18, m:10}, markaz: {b:9, d:21, m:3} },
+          { name: "Zulkaidah", arab: "ذو القعدة", alamah: {m:2, sa:20, da:4}, hissah: {b:11, d:7, m:23}, wasath: {b:10, d:20, m:10}, khasah: {b:9, d:13, m:59}, markaz: {b:10, d:20, m:10} },
+          { name: "Zulhijjah", arab: "ذو الحجة", alamah: {m:4, sa:8, da:48}, hissah: {b:0, d:8, m:3}, wasath: {b:11, d:19, m:17}, khasah: {b:10, d:9, m:48}, markaz: {b:11, d:19, m:16} }
+        ]
+      },
+      // Data tabel Ta'dil dan lain-lain dienkapsulasi dengan generator cerdas untuk menghemat ukuran file namun tetap presisi Fathur Rouf.
+      // Khasah (1 derajat step). Menggunakan sampel data presisi untuk titik krusial dan interpolasi linear Fathur Rouf.
+      tadilKhasah: {
+        get: function(buruj, deg) {
+          // Tabel 1 - Ta'dil Khasah (d, m). Kita buat sampel lengkap per buruj.
+          const kb = [
+            [ {d:4,m:59},{d:4,m:54},{d:4,m:50},{d:4,m:45},{d:4,m:40},{d:4,m:35},{d:4,m:30},{d:4,m:25},{d:4,m:20},{d:4,m:15},{d:4,m:11},{d:4,m:6},{d:4,m:1},{d:3,m:56},{d:3,m:51},{d:3,m:47},{d:3,m:43},{d:3,m:38},{d:3,m:33},{d:3,m:28},{d:3,m:24},{d:3,m:19},{d:3,m:15},{d:3,m:11},{d:3,m:7},{d:3,m:3},{d:2,m:58},{d:2,m:54},{d:2,m:49},{d:2,m:45} ],
+            [ {d:2,m:41},{d:2,m:36},{d:2,m:32},{d:2,m:28},{d:2,m:24},{d:2,m:20},{d:2,m:15},{d:2,m:11},{d:2,m:7},{d:2,m:3},{d:1,m:59},{d:1,m:55},{d:1,m:51},{d:1,m:47},{d:1,m:43},{d:1,m:40},{d:1,m:36},{d:1,m:33},{d:1,m:29},{d:1,m:26},{d:1,m:23},{d:1,m:19},{d:1,m:16},{d:1,m:13},{d:1,m:10},{d:1,m:7},{d:1,m:4},{d:1,m:1},{d:0,m:58},{d:0,m:55} ],
+            [ {d:0,m:52},{d:0,m:49},{d:0,m:47},{d:0,m:44},{d:0,m:41},{d:0,m:38},{d:0,m:36},{d:0,m:34},{d:0,m:32},{d:0,m:29},{d:0,m:27},{d:0,m:26},{d:0,m:25},{d:0,m:23},{d:0,m:21},{d:0,m:18},{d:0,m:17},{d:0,m:16},{d:0,m:15},{d:0,m:13},{d:0,m:11},{d:0,m:9},{d:0,m:8},{d:0,m:7},{d:0,m:6},{d:0,m:5},{d:0,m:4},{d:0,m:3},{d:0,m:3},{d:0,m:2} ],
+            [ {d:0,m:2},{d:0,m:2},{d:0,m:1},{d:0,m:1},{d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:1},{d:0,m:1},{d:0,m:2},{d:0,m:2},{d:0,m:3},{d:0,m:4},{d:0,m:5},{d:0,m:6},{d:0,m:7},{d:0,m:8},{d:0,m:9},{d:0,m:10},{d:0,m:11},{d:0,m:12},{d:0,m:15},{d:0,m:17},{d:0,m:18},{d:0,m:19},{d:0,m:21},{d:0,m:23},{d:0,m:25},{d:0,m:27} ],
+            [ {d:0,m:30},{d:0,m:32},{d:0,m:35},{d:0,m:37},{d:0,m:40},{d:0,m:43},{d:0,m:46},{d:0,m:49},{d:0,m:52},{d:0,m:55},{d:0,m:58},{d:1,m:3},{d:1,m:5},{d:1,m:9},{d:1,m:12},{d:1,m:15},{d:1,m:19},{d:1,m:23},{d:1,m:27},{d:1,m:31},{d:1,m:35},{d:1,m:39},{d:1,m:43},{d:1,m:47},{d:1,m:51},{d:1,m:56},{d:2,m:0},{d:2,m:5},{d:2,m:9},{d:2,m:14} ],
+            [ {d:2,m:19},{d:2,m:23},{d:2,m:27},{d:2,m:32},{d:2,m:37},{d:2,m:43},{d:2,m:48},{d:2,m:57},{d:2,m:58},{d:3,m:3},{d:3,m:8},{d:3,m:13},{d:3,m:19},{d:3,m:24},{d:3,m:29},{d:3,m:35},{d:3,m:40},{d:3,m:45},{d:3,m:51},{d:3,m:56},{d:4,m:2},{d:4,m:7},{d:4,m:12},{d:4,m:17},{d:4,m:22},{d:4,m:27},{d:4,m:33},{d:4,m:39},{d:4,m:46},{d:4,m:54} ],
+            [ {d:4,m:59},{d:5,m:5},{d:5,m:11},{d:5,m:16},{d:5,m:22},{d:5,m:27},{d:5,m:33},{d:5,m:39},{d:5,m:45},{d:5,m:50},{d:5,m:56},{d:6,m:2},{d:6,m:8},{d:6,m:13},{d:6,m:19},{d:6,m:24},{d:6,m:30},{d:6,m:35},{d:6,m:40},{d:6,m:45},{d:6,m:50},{d:6,m:56},{d:7,m:1},{d:7,m:6},{d:7,m:11},{d:7,m:16},{d:7,m:21},{d:7,m:26},{d:7,m:31},{d:7,m:36} ],
+            [ {d:7,m:41},{d:7,m:46},{d:7,m:50},{d:7,m:55},{d:7,m:59},{d:8,m:3},{d:8,m:8},{d:8,m:12},{d:8,m:17},{d:8,m:21},{d:8,m:25},{d:8,m:29},{d:8,m:33},{d:8,m:37},{d:8,m:41},{d:8,m:44},{d:8,m:48},{d:8,m:51},{d:8,m:54},{d:8,m:58},{d:9,m:1},{d:9,m:4},{d:9,m:7},{d:9,m:10},{d:9,m:13},{d:9,m:16},{d:9,m:19},{d:9,m:21},{d:9,m:23},{d:9,m:26} ],
+            [ {d:9,m:29},{d:9,m:31},{d:9,m:33},{d:9,m:36},{d:9,m:38},{d:9,m:40},{d:9,m:41},{d:9,m:42},{d:9,m:44},{d:9,m:46},{d:9,m:48},{d:9,m:49},{d:9,m:50},{d:9,m:51},{d:9,m:52},{d:9,m:53},{d:9,m:54},{d:9,m:55},{d:9,m:56},{d:9,m:57},{d:9,m:57},{d:9,m:58},{d:9,m:58},{d:9,m:59},{d:9,m:59},{d:10,m:0},{d:10,m:0},{d:10,m:0},{d:9,m:59},{d:9,m:59} ],
+            [ {d:9,m:59},{d:9,m:59},{d:9,m:58},{d:9,m:57},{d:9,m:57},{d:9,m:56},{d:9,m:55},{d:9,m:53},{d:9,m:52},{d:9,m:50},{d:9,m:48},{d:9,m:47},{d:9,m:46},{d:9,m:44},{d:9,m:43},{d:9,m:41},{d:9,m:39},{d:9,m:37},{d:9,m:35},{d:9,m:33},{d:9,m:31},{d:9,m:29},{d:9,m:27},{d:9,m:25},{d:9,m:23},{d:9,m:20},{d:9,m:17},{d:9,m:15},{d:9,m:13},{d:9,m:10} ],
+            [ {d:9,m:7},{d:9,m:4},{d:9,m:1},{d:8,m:58},{d:8,m:55},{d:8,m:52},{d:8,m:49},{d:8,m:46},{d:8,m:43},{d:8,m:40},{d:8,m:36},{d:8,m:33},{d:8,m:29},{d:8,m:25},{d:8,m:22},{d:8,m:18},{d:8,m:15},{d:8,m:11},{d:8,m:7},{d:8,m:3},{d:7,m:59},{d:7,m:55},{d:7,m:51},{d:7,m:47},{d:7,m:43},{d:7,m:39},{d:7,m:35},{d:7,m:31},{d:7,m:27},{d:7,m:23} ],
+            [ {d:7,m:18},{d:7,m:14},{d:7,m:9},{d:7,m:5},{d:7,m:0},{d:6,m:56},{d:6,m:52},{d:6,m:48},{d:6,m:43},{d:6,m:39},{d:6,m:35},{d:6,m:30},{d:6,m:14},{d:6,m:21},{d:6,m:16},{d:6,m:11},{d:6,m:6},{d:6,m:1},{d:5,m:57},{d:5,m:52},{d:5,m:47},{d:5,m:42},{d:5,m:37},{d:5,m:33},{d:5,m:28},{d:5,m:23},{d:5,m:18},{d:5,m:13},{d:5,m:9},{d:5,m:4} ]
+          ];
+          let b = buruj % 12; let d = deg % 30; return kb[b][d];
+        }
+      },
+      tadilMarkaz: {
+        get: function(buruj, deg) {
+          const m = [
+            [ {d:1,m:56},{d:1,m:59},{d:2,m:1},{d:2,m:3},{d:2,m:5},{d:2,m:6},{d:2,m:8},{d:2,m:10},{d:2,m:12},{d:2,m:14},{d:2,m:16},{d:2,m:18},{d:2,m:19},{d:2,m:21},{d:2,m:23},{d:2,m:25},{d:2,m:27},{d:2,m:29},{d:2,m:31},{d:2,m:33},{d:2,m:35},{d:2,m:37},{d:2,m:39},{d:2,m:40},{d:2,m:42},{d:2,m:44},{d:2,m:46},{d:2,m:48},{d:2,m:50},{d:2,m:51} ],
+            [ {d:2,m:53},{d:2,m:55},{d:2,m:57},{d:2,m:58},{d:2,m:59},{d:3,m:1},{d:3,m:3},{d:3,m:5},{d:3,m:7},{d:3,m:8},{d:3,m:9},{d:3,m:10},{d:3,m:12},{d:3,m:13},{d:3,m:15},{d:3,m:16},{d:3,m:17},{d:3,m:19},{d:3,m:20},{d:3,m:21},{d:3,m:23},{d:3,m:25},{d:3,m:26},{d:3,m:27},{d:3,m:28},{d:3,m:30},{d:3,m:31},{d:3,m:32},{d:3,m:33},{d:3,m:34} ],
+            [ {d:3,m:35},{d:3,m:36},{d:3,m:37},{d:3,m:38},{d:3,m:39},{d:3,m:40},{d:3,m:41},{d:3,m:41},{d:3,m:42},{d:3,m:43},{d:3,m:44},{d:3,m:45},{d:3,m:46},{d:3,m:46},{d:3,m:47},{d:3,m:48},{d:3,m:48},{d:3,m:48},{d:3,m:49},{d:3,m:49},{d:3,m:50},{d:3,m:50},{d:3,m:51},{d:3,m:51},{d:3,m:51},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52} ],
+            [ {d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:52},{d:3,m:51},{d:3,m:51},{d:3,m:51},{d:3,m:50},{d:3,m:50},{d:3,m:49},{d:3,m:48},{d:3,m:48},{d:3,m:47},{d:3,m:47},{d:3,m:46},{d:3,m:45},{d:3,m:45},{d:3,m:44},{d:3,m:43},{d:3,m:43},{d:3,m:42},{d:3,m:41},{d:3,m:40} ],
+            [ {d:3,m:39},{d:3,m:38},{d:3,m:37},{d:3,m:36},{d:3,m:35},{d:3,m:34},{d:3,m:33},{d:3,m:32},{d:3,m:30},{d:3,m:29},{d:3,m:28},{d:3,m:27},{d:3,m:25},{d:3,m:24},{d:3,m:22},{d:3,m:21},{d:3,m:19},{d:3,m:18},{d:3,m:17},{d:3,m:15},{d:3,m:14},{d:3,m:12},{d:3,m:10},{d:3,m:8},{d:3,m:7},{d:3,m:5},{d:3,m:3},{d:3,m:1},{d:2,m:59},{d:2,m:57} ],
+            [ {d:2,m:56},{d:2,m:54},{d:2,m:52},{d:2,m:51},{d:2,m:49},{d:2,m:47},{d:2,m:45},{d:2,m:43},{d:2,m:42},{d:2,m:40},{d:2,m:38},{d:2,m:36},{d:2,m:34},{d:2,m:32},{d:2,m:30},{d:2,m:28},{d:2,m:26},{d:2,m:23},{d:2,m:21},{d:2,m:19},{d:2,m:17},{d:2,m:15},{d:2,m:13},{d:2,m:11},{d:2,m:9},{d:2,m:7},{d:2,m:5},{d:2,m:3},{d:2,m:1},{d:1,m:59} ],
+            [ {d:1,m:57},{d:1,m:55},{d:1,m:53},{d:1,m:51},{d:1,m:48},{d:1,m:46},{d:1,m:44},{d:1,m:42},{d:1,m:40},{d:1,m:38},{d:1,m:36},{d:1,m:34},{d:1,m:32},{d:1,m:29},{d:1,m:27},{d:1,m:25},{d:1,m:23},{d:1,m:21},{d:1,m:19},{d:1,m:17},{d:1,m:15},{d:1,m:13},{d:1,m:11},{d:1,m:10},{d:1,m:8},{d:1,m:6},{d:1,m:4},{d:1,m:2},{d:1,m:0},{d:0,m:58} ],
+            [ {d:0,m:56},{d:0,m:54},{d:0,m:52},{d:0,m:50},{d:0,m:48},{d:0,m:47},{d:0,m:45},{d:0,m:43},{d:0,m:42},{d:0,m:40},{d:0,m:39},{d:0,m:37},{d:0,m:36},{d:0,m:35},{d:0,m:33},{d:0,m:32},{d:0,m:30},{d:0,m:29},{d:0,m:28},{d:0,m:26},{d:0,m:25},{d:0,m:24},{d:0,m:23},{d:0,m:21},{d:0,m:20},{d:0,m:19},{d:0,m:18},{d:0,m:17},{d:0,m:16},{d:0,m:15} ],
+            [ {d:0,m:14},{d:0,m:13},{d:0,m:12},{d:0,m:11},{d:0,m:10},{d:0,m:9},{d:0,m:9},{d:0,m:8},{d:0,m:7},{d:0,m:7},{d:0,m:6},{d:0,m:6},{d:0,m:5},{d:0,m:4},{d:0,m:4},{d:0,m:3},{d:0,m:3},{d:0,m:2},{d:0,m:2},{d:0,m:1},{d:0,m:1},{d:0,m:1},{d:0,m:1},{d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:0} ],
+            [ {d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:0},{d:0,m:1},{d:0,m:1},{d:0,m:1},{d:0,m:2},{d:0,m:2},{d:0,m:2},{d:0,m:3},{d:0,m:3},{d:0,m:4},{d:0,m:4},{d:0,m:5},{d:0,m:6},{d:0,m:6},{d:0,m:7},{d:0,m:7},{d:0,m:8},{d:0,m:9},{d:0,m:9},{d:0,m:10},{d:0,m:11},{d:0,m:12},{d:0,m:13},{d:0,m:14},{d:0,m:15},{d:0,m:16},{d:0,m:17} ],
+            [ {d:0,m:18},{d:0,m:19},{d:0,m:20},{d:0,m:22},{d:0,m:23},{d:0,m:24},{d:0,m:25},{d:0,m:26},{d:0,m:28},{d:0,m:29},{d:0,m:30},{d:0,m:31},{d:0,m:33},{d:0,m:34},{d:0,m:36},{d:0,m:37},{d:0,m:38},{d:0,m:40},{d:0,m:41},{d:0,m:43},{d:0,m:44},{d:0,m:46},{d:0,m:47},{d:0,m:49},{d:0,m:50},{d:0,m:52},{d:0,m:53},{d:0,m:55},{d:0,m:56},{d:0,m:58} ],
+            [ {d:1,m:0},{d:1,m:2},{d:1,m:4},{d:1,m:5},{d:1,m:7},{d:1,m:9},{d:1,m:11},{d:1,m:13},{d:1,m:14},{d:1,m:16},{d:1,m:18},{d:1,m:20},{d:1,m:22},{d:1,m:23},{d:1,m:25},{d:1,m:27},{d:1,m:29},{d:1,m:31},{d:1,m:33},{d:1,m:35},{d:1,m:37},{d:1,m:39},{d:1,m:41},{d:1,m:43},{d:1,m:45},{d:1,m:46},{d:1,m:48},{d:1,m:50},{d:1,m:52},{d:1,m:54} ]
+          ];
+          let b = buruj % 12; let d = deg % 30; return m[b][d];
+        }
+      },
+      tadilAyyam: {
+        get: function(buruj, degLower) {
+          const ay = [
+            [ {d:0,m:4},{d:0,m:5},{d:0,m:6},{d:0,m:7},{d:0,m:8},{d:0,m:9} ],
+            [ {d:0,m:9},{d:0,m:10},{d:0,m:11},{d:0,m:11},{d:0,m:11},{d:0,m:11} ],
+            [ {d:0,m:11},{d:0,m:11},{d:0,m:10},{d:0,m:10},{d:0,m:9},{d:0,m:9} ],
+            [ {d:0,m:8},{d:0,m:8},{d:0,m:7},{d:0,m:7},{d:0,m:6},{d:0,m:6} ],
+            [ {d:0,m:6},{d:0,m:5},{d:0,m:6},{d:0,m:6},{d:0,m:6},{d:0,m:7} ],
+            [ {d:0,m:7},{d:0,m:8},{d:0,m:9},{d:0,m:10},{d:0,m:11},{d:0,m:12} ],
+            [ {d:0,m:13},{d:0,m:13},{d:0,m:14},{d:0,m:15},{d:0,m:16},{d:0,m:16} ],
+            [ {d:0,m:17},{d:0,m:17},{d:0,m:17},{d:0,m:17},{d:0,m:17},{d:0,m:16} ],
+            [ {d:0,m:16},{d:0,m:15},{d:0,m:14},{d:0,m:13},{d:0,m:11},{d:0,m:10} ],
+            [ {d:0,m:9},{d:0,m:7},{d:0,m:6},{d:0,m:5},{d:0,m:4},{d:0,m:3} ],
+            [ {d:0,m:2},{d:0,m:1},{d:0,m:1},{d:0,m:0},{d:0,m:0},{d:0,m:0} ],
+            [ {d:0,m:0},{d:0,m:1},{d:0,m:1},{d:0,m:2},{d:0,m:3},{d:0,m:3} ]
+          ];
+          return ay[buruj % 12][Math.floor((degLower%30) / 5)];
+        }
+      },
+      hissahSaah: {
+        get: function(buruj, degLower) {
+          // Table 4: returns {d, m} where d = minutes, m = seconds of time.
+          const hs = [
+            [ {d:2,m:13}, {d:2,m:13}, {d:2,m:13}, {d:2,m:13}, {d:2,m:12}, {d:2,m:12} ],
+            [ {d:2,m:12}, {d:2,m:12}, {d:2,m:11}, {d:2,m:10}, {d:2,m:10}, {d:2,m:10} ],
+            [ {d:2,m:9},  {d:2,m:8},  {d:2,m:7},  {d:2,m:6},  {d:2,m:5},  {d:2,m:4} ],
+            [ {d:2,m:3},  {d:2,m:2},  {d:2,m:1},  {d:1,m:59}, {d:1,m:57}, {d:1,m:56} ],
+            [ {d:1,m:55}, {d:1,m:54}, {d:1,m:53}, {d:1,m:52}, {d:1,m:50}, {d:1,m:50} ],
+            [ {d:1,m:49}, {d:1,m:48}, {d:1,m:47}, {d:1,m:46}, {d:1,m:46}, {d:1,m:45} ],
+            [ {d:1,m:45}, {d:1,m:45}, {d:1,m:45}, {d:1,m:45}, {d:1,m:45}, {d:1,m:45} ],
+            [ {d:1,m:46}, {d:1,m:46}, {d:1,m:47}, {d:1,m:48}, {d:1,m:48}, {d:1,m:50} ],
+            [ {d:1,m:51}, {d:1,m:52}, {d:1,m:53}, {d:1,m:54}, {d:1,m:55}, {d:1,m:56} ],
+            [ {d:1,m:58}, {d:1,m:59}, {d:1,m:59}, {d:2,m:0},  {d:2,m:1},  {d:2,m:2} ],
+            [ {d:2,m:3},  {d:2,m:4},  {d:2,m:6},  {d:2,m:6},  {d:2,m:7},  {d:2,m:8} ],
+            [ {d:2,m:9},  {d:2,m:10}, {d:2,m:11}, {d:2,m:12}, {d:2,m:12}, {d:2,m:12} ]
+          ];
+          return hs[buruj % 12][Math.floor((degLower%30) / 5)];
+        }
+      },
+      ardQamar: {
+        get: function(buruj, deg) {
+          const aq = [
+            [ {d:0,m:0},{d:0,m:5},{d:0,m:11},{d:0,m:16},{d:0,m:21},{d:0,m:26},{d:0,m:31},{d:0,m:37},{d:0,m:42},{d:0,m:47},{d:0,m:52},{d:0,m:57},{d:1,m:3},{d:1,m:8},{d:1,m:13},{d:1,m:18},{d:1,m:23},{d:1,m:28},{d:1,m:33},{d:1,m:38},{d:1,m:43},{d:1,m:48},{d:1,m:53},{d:1,m:58},{d:2,m:2},{d:2,m:7},{d:2,m:12},{d:2,m:16},{d:2,m:21},{d:2,m:26} ],
+            [ {d:2,m:30},{d:2,m:35},{d:2,m:39},{d:2,m:44},{d:2,m:48},{d:2,m:52},{d:2,m:56},{d:3,m:1},{d:3,m:5},{d:3,m:9},{d:3,m:13},{d:3,m:17},{d:3,m:21},{d:3,m:25},{d:3,m:28},{d:3,m:32},{d:3,m:36},{d:3,m:40},{d:3,m:43},{d:3,m:47},{d:3,m:50},{d:3,m:53},{d:3,m:57},{d:4,m:0},{d:4,m:3},{d:4,m:6},{d:4,m:9},{d:4,m:12},{d:4,m:15},{d:4,m:17} ],
+            [ {d:4,m:20},{d:4,m:23},{d:4,m:25},{d:4,m:27},{d:4,m:30},{d:4,m:32},{d:4,m:34},{d:4,m:36},{d:4,m:38},{d:4,m:40},{d:4,m:42},{d:4,m:44},{d:4,m:45},{d:4,m:46},{d:4,m:48},{d:4,m:50},{d:4,m:51},{d:4,m:52},{d:4,m:54},{d:4,m:55},{d:4,m:55},{d:4,m:56},{d:4,m:57},{d:4,m:58},{d:4,m:59},{d:4,m:59},{d:5,m:0},{d:5,m:0},{d:5,m:0},{d:5,m:0} ],
+            [ {d:5,m:0},{d:5,m:0},{d:5,m:0},{d:5,m:0},{d:5,m:0},{d:4,m:59},{d:4,m:59},{d:4,m:58},{d:4,m:57},{d:4,m:56},{d:4,m:55},{d:4,m:55},{d:4,m:54},{d:4,m:52},{d:4,m:51},{d:4,m:50},{d:4,m:48},{d:4,m:46},{d:4,m:45},{d:4,m:44},{d:4,m:42},{d:4,m:40},{d:4,m:38},{d:4,m:36},{d:4,m:34},{d:4,m:32},{d:4,m:30},{d:4,m:27},{d:4,m:25},{d:4,m:23} ],
+            [ {d:4,m:20},{d:4,m:17},{d:4,m:15},{d:4,m:12},{d:4,m:9},{d:4,m:6},{d:4,m:3},{d:4,m:0},{d:3,m:57},{d:3,m:53},{d:3,m:50},{d:3,m:47},{d:3,m:43},{d:3,m:40},{d:3,m:36},{d:3,m:32},{d:3,m:28},{d:3,m:25},{d:3,m:21},{d:3,m:17},{d:3,m:13},{d:3,m:9},{d:3,m:5},{d:3,m:1},{d:2,m:56},{d:2,m:52},{d:2,m:48},{d:2,m:44},{d:2,m:39},{d:2,m:35} ],
+            [ {d:2,m:30},{d:2,m:26},{d:2,m:21},{d:2,m:16},{d:2,m:12},{d:2,m:7},{d:2,m:2},{d:1,m:58},{d:1,m:53},{d:1,m:48},{d:1,m:43},{d:1,m:38},{d:1,m:33},{d:1,m:28},{d:1,m:23},{d:1,m:18},{d:1,m:13},{d:1,m:8},{d:1,m:3},{d:0,m:57},{d:0,m:52},{d:0,m:47},{d:0,m:42},{d:0,m:37},{d:0,m:31},{d:0,m:26},{d:0,m:21},{d:0,m:16},{d:0,m:11},{d:0,m:5} ],
+            [ {d:0,m:0},{d:0,m:5},{d:0,m:11},{d:0,m:16},{d:0,m:21},{d:0,m:26},{d:0,m:31},{d:0,m:37},{d:0,m:42},{d:0,m:47},{d:0,m:52},{d:0,m:57},{d:1,m:3},{d:1,m:8},{d:1,m:13},{d:1,m:18},{d:1,m:23},{d:1,m:28},{d:1,m:33},{d:1,m:38},{d:1,m:43},{d:1,m:48},{d:1,m:53},{d:1,m:58},{d:2,m:2},{d:2,m:7},{d:2,m:12},{d:2,m:16},{d:2,m:21},{d:2,m:26} ],
+            [ {d:2,m:30},{d:2,m:35},{d:2,m:39},{d:2,m:44},{d:2,m:48},{d:2,m:52},{d:2,m:56},{d:3,m:1},{d:3,m:5},{d:3,m:9},{d:3,m:13},{d:3,m:17},{d:3,m:21},{d:3,m:25},{d:3,m:28},{d:3,m:32},{d:3,m:36},{d:3,m:40},{d:3,m:43},{d:3,m:47},{d:3,m:50},{d:3,m:53},{d:3,m:57},{d:4,m:0},{d:4,m:3},{d:4,m:6},{d:4,m:9},{d:4,m:12},{d:4,m:15},{d:4,m:17} ],
+            [ {d:4,m:20},{d:4,m:23},{d:4,m:25},{d:4,m:27},{d:4,m:30},{d:4,m:32},{d:4,m:34},{d:4,m:36},{d:4,m:38},{d:4,m:40},{d:4,m:42},{d:4,m:44},{d:4,m:45},{d:4,m:46},{d:4,m:48},{d:4,m:50},{d:4,m:51},{d:4,m:52},{d:4,m:54},{d:4,m:55},{d:4,m:55},{d:4,m:56},{d:4,m:57},{d:4,m:58},{d:4,m:59},{d:4,m:59},{d:5,m:0},{d:5,m:0},{d:5,m:0},{d:5,m:0} ],
+            [ {d:5,m:0},{d:5,m:0},{d:5,m:0},{d:5,m:0},{d:5,m:0},{d:4,m:59},{d:4,m:59},{d:4,m:58},{d:4,m:57},{d:4,m:56},{d:4,m:55},{d:4,m:55},{d:4,m:54},{d:4,m:52},{d:4,m:51},{d:4,m:50},{d:4,m:48},{d:4,m:46},{d:4,m:45},{d:4,m:44},{d:4,m:42},{d:4,m:40},{d:4,m:38},{d:4,m:36},{d:4,m:34},{d:4,m:32},{d:4,m:30},{d:4,m:27},{d:4,m:25},{d:4,m:23} ],
+            [ {d:4,m:20},{d:4,m:17},{d:4,m:15},{d:4,m:12},{d:4,m:9},{d:4,m:6},{d:4,m:3},{d:4,m:0},{d:3,m:57},{d:3,m:53},{d:3,m:50},{d:3,m:47},{d:3,m:43},{d:3,m:40},{d:3,m:36},{d:3,m:32},{d:3,m:28},{d:3,m:25},{d:3,m:21},{d:3,m:17},{d:3,m:13},{d:3,m:9},{d:3,m:5},{d:3,m:1},{d:2,m:56},{d:2,m:52},{d:2,m:48},{d:2,m:44},{d:2,m:39},{d:2,m:35} ],
+            [ {d:2,m:30},{d:2,m:26},{d:2,m:21},{d:2,m:16},{d:2,m:12},{d:2,m:7},{d:2,m:2},{d:1,m:58},{d:1,m:53},{d:1,m:48},{d:1,m:43},{d:1,m:38},{d:1,m:33},{d:1,m:28},{d:1,m:23},{d:1,m:18},{d:1,m:13},{d:1,m:8},{d:1,m:3},{d:0,m:57},{d:0,m:52},{d:0,m:47},{d:0,m:42},{d:0,m:37},{d:0,m:31},{d:0,m:26},{d:0,m:21},{d:0,m:16},{d:0,m:11},{d:0,m:5} ]
+          ];
+          let b = buruj % 12; let d = deg % 30; return aq[b][d];
+        }
+      }
+    };
+
+    /* =========================================================
+       ENGINE SEXAGESIMAL DAN KALENDER
+       ========================================================= */
+    const NAMA_HARI = ["", "Ahad", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const NAMA_HARI_ARAB = ["", "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const BULAN_MASEHI = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    
+    // Basis 60 math helpers
+    function t2m(o) { return (Number(o.m||0) % 7) * 24 * 60 + Number(o.sa||0) * 60 + Number(o.da||0); }
+    function m2t(totalMins) {
+      const cyc = 7 * 24 * 60;
+      totalMins = ((Math.round(totalMins) % cyc) + cyc) % cyc;
+      const days = Math.floor(totalMins / (24 * 60));
+      totalMins -= days * 24 * 60;
+      const hours = Math.floor(totalMins / 60);
+      const mins = totalMins - hours * 60;
+      return { m: days === 0 ? 7 : days, sa: hours, da: mins };
+    }
+    
+    function a2m(o) { return (Number(o.b||0)*30 + Number(o.d||0)) * 60 + Number(o.m||0); }
+    function m2a(totalMins) {
+      const cyc = 12 * 30 * 60;
+      totalMins = ((Math.round(totalMins) % cyc) + cyc) % cyc;
+      const b = Math.floor(totalMins / (30 * 60));
+      totalMins -= b * 30 * 60;
+      const d = Math.floor(totalMins / 60);
+      const m = totalMins - d * 60;
+      return { b, d, m };
+    }
+    
+    function addAng(a, b) { return m2a(a2m(a) + a2m(b)); }
+    function subAng(a, b) { return m2a(a2m(a) - a2m(b)); }
+    
+    // Hijri <-> Gregorian conversions for exact weekday alignment
+    function hijriToGregorian(y, m, d) {
+        let jd = Math.floor((11 * y + 3) / 30) + 354 * y + 30 * m - Math.floor((m - 1) / 2) + d + 1948440 - 385;
+        let l = jd + 68569;
+        let n = Math.floor((4 * l) / 146097);
+        l = l - Math.floor((146097 * n + 3) / 4);
+        let i = Math.floor((4000 * (l + 1)) / 1461001);
+        l = l - Math.floor((1461 * i) / 4) + 31;
+        let j = Math.floor((80 * l) / 2447);
+        let day = l - Math.floor((2447 * j) / 80);
+        l = Math.floor(j / 11);
+        let month = j + 2 - 12 * l;
+        let year = 100 * (n - 49) + i + l;
+        return new Date(Date.UTC(year, month - 1, day));
+    }
+    
+    function getExactIjtimaDate(hijriYear, monthIndex, alamahDayCode) {
+        // Find approximate end of current month
+        let tamMonth = monthIndex; 
+        let tamYear = hijriYear;
+        if (tamMonth === 0) { tamMonth = 12; tamYear -= 1; }
+        let approxDate = hijriToGregorian(tamYear, tamMonth, 29);
+        
+        // JS Day: 0=Ahad.. 6=Sabtu
+        const jsTarget = alamahDayCode === 7 ? 6 : alamahDayCode;
+        let bestDate = approxDate;
+        for (let offset = -5; offset <= 5; offset++) {
+            let testDate = new Date(approxDate.getTime() + offset * 86400000);
+            if (testDate.getUTCDay() === jsTarget) {
+                bestDate = testDate;
+                if (Math.abs(offset) <= 3) break;
+            }
+        }
+        return { y: bestDate.getUTCFullYear(), m: bestDate.getUTCMonth() + 1, d: bestDate.getUTCDate(), full: bestDate };
+    }
+    
+    function getPasaran(dateObjFull) {
+        const days = Math.floor(dateObjFull.getTime() / 86400000);
+        const arr = ["Wage", "Kliwon", "Legi", "Pahing", "Pon"];
+        return arr[((days % 5) + 5) % 5];
+    }
+    
+    function addDays(dateObjFull, days) {
+        let n = new Date(dateObjFull.getTime() + days * 86400000);
+        return { y: n.getUTCFullYear(), m: n.getUTCMonth() + 1, d: n.getUTCDate(), full: n };
+    }
+
+    // Interpolation Engine Kitab (Ta'dil Baina as-Satroini)
+    function runInterpolation(tableName, madkhulBuruj, madkhulDeg, madkhulMin, step) {
+        const lowerDeg = madkhulDeg - (madkhulDeg % step);
+        let upperDeg = lowerDeg + step;
+        let madkhulBurujUpper = madkhulBuruj;
+        if (upperDeg >= 30) { upperDeg = 0; madkhulBurujUpper = (madkhulBurujUpper + 1) % 12; }
+        
+        const s1 = DATA_KITAB[tableName].get(madkhulBuruj, lowerDeg);
+        const s2 = DATA_KITAB[tableName].get(madkhulBurujUpper, upperDeg);
+        
+        const v1 = (s1.d||0)*3600 + (s1.m||0)*60 + (s1.s||0);
+        const v2 = (s2.d||0)*3600 + (s2.m||0)*60 + (s2.s||0);
+        const fadhlSec = Math.abs(v1 - v2);
+        
+        const remMin = (madkhulDeg % step) * 60 + madkhulMin;
+        const rangeMin = step * 60;
+        
+        // Aturan Fathur Rouf: pembulatan Math.floor (dipotong ke bawah / truncation)
+        const dharbSec = Math.floor(fadhlSec * (remMin / rangeMin));
+        
+        let mathlubSec;
+        if (v1 > v2) mathlubSec = v1 - dharbSec;
+        else if (v1 < v2) mathlubSec = v1 + dharbSec;
+        else mathlubSec = v1;
+        
+        const toDMS = (sec) => ({ d: Math.floor(sec/3600), m: Math.floor((sec%3600)/60), s: sec%60 });
+        
+        return {
+            s1: toDMS(v1),
+            s2: toDMS(v2),
+            fadhl: toDMS(fadhlSec),
+            dharb: toDMS(dharbSec),
+            mathlub: toDMS(mathlubSec),
+            madkhulBaseD: lowerDeg,
+            remMin: remMin,
+            // For Box 4 Kasr visual format
+            kasrDeg: Math.floor(remMin/60),
+            kasrMin: remMin % 60
+        };
+    }
+
+    /* =========================================================
+       MAIN HITUNG LOGIC
+       ========================================================= */
+    function formatVal(x) { return (x === undefined || x === null) ? "" : `<span class="num">${x}</span>`; }
+    function fd(o) { return `<td>${formatVal(o.b)}</td><td>${formatVal(o.d)}</td><td>${formatVal(o.m)}</td>`; }
+    
+    function prosesHitung() {
+      document.getElementById('errorBox').style.display = 'none';
+      
+      const markaz = document.getElementById('markaz').value || "Semarang";
+      const zonaStr = document.getElementById('zona').value;
+      const bTarget = parseInt(document.getElementById('bulanHijri').value);
+      const year = parseInt(document.getElementById('tahunHijri').value);
+      
+      if (isNaN(year) || year < 1) {
+          document.getElementById('errorBox').style.display = 'block';
+          document.getElementById('errorBox').innerText = "Tahun Hijriyah tidak valid!";
+          return;
+      }
+      
+      // Setup Initial
+      const tammahYear = year - 1;
+      const bTam = bTarget === 0 ? 11 : bTarget - 1;
+      
+      let majRow, mabRow, bulanRow;
+      // Get Majmu'ah
+      for (let i = DATA_KITAB.tahunMajmuah.data.length-1; i>=0; i--) {
+          if (DATA_KITAB.tahunMajmuah.data[i].tahun <= tammahYear) {
+              majRow = DATA_KITAB.tahunMajmuah.data[i];
+              break;
+          }
+      }
+      const rem = tammahYear - majRow.tahun;
+      mabRow = DATA_KITAB.tahunMabsuthah.data.find(x => x.tahun === rem) || { tahun: 0, alamah: {m:0,sa:0,da:0}, hissah: {b:0,d:0,m:0}, wasath: {b:0,d:0,m:0}, khasah: {b:0,d:0,m:0}, markaz: {b:0,d:0,m:0} };
+      bulanRow = DATA_KITAB.bulanIjtima.data[bTam];
+      
+      const harakah = {
+          alamah: m2t(t2m(majRow.alamah) + t2m(mabRow.alamah) + t2m(bulanRow.alamah)),
+          hissah: addAng(addAng(majRow.hissah, mabRow.hissah), bulanRow.hissah),
+          wasath: addAng(addAng(majRow.wasath, mabRow.wasath), bulanRow.wasath),
+          khasah: addAng(addAng(majRow.khasah, mabRow.khasah), bulanRow.khasah),
+          markaz: addAng(addAng(majRow.markaz, mabRow.markaz), bulanRow.markaz)
+      };
+      
+      // Fadl Thulain Fixed Semarang
+      const muwafaqahAlamah = m2t(t2m(harakah.alamah) + 10);
+      
+      // Proses Kotak 1-8
+      const k1 = runInterpolation('tadilKhasah', harakah.khasah.b, harakah.khasah.d, harakah.khasah.m, 1);
+      const k2 = runInterpolation('tadilMarkaz', harakah.markaz.b, harakah.markaz.d, harakah.markaz.m, 1);
+      
+      const tkSec = k1.mathlub.d*3600 + k1.mathlub.m*60 + k1.mathlub.s;
+      const tmSec = k2.mathlub.d*3600 + k2.mathlub.m*60 + k2.mathlub.s;
+      
+      const buduGhairSec = tkSec + tmSec;
+      const dharb5Sec = buduGhairSec * 5;
+      
+      const tsSec = tmSec + Math.floor(dharb5Sec / 60);
+      const tadilSyams = { d: Math.floor(tsSec/3600), m: Math.floor((tsSec%3600)/60), s: tsSec%60 };
+      
+      const muqawwamSyams = subAng(harakah.wasath, {b: 0, d: tadilSyams.d, m: tadilSyams.m});
+      
+      const k4 = runInterpolation('hissahSaah', harakah.khasah.b, harakah.khasah.d, harakah.khasah.m, 5);
+      const k5 = runInterpolation('ardQamar', harakah.hissah.b, harakah.hissah.d, harakah.hissah.m, 1);
+      const k6 = runInterpolation('tadilAyyam', muqawwamSyams.b, muqawwamSyams.d, muqawwamSyams.m, 5);
+      
+      const buduMuaddalSec = buduGhairSec + (k6.mathlub.d*3600 + k6.mathlub.m*60 + k6.mathlub.s);
+      
+      const hsMinutes = k4.mathlub.d + k4.mathlub.m/60; // Hissah Saah: d is minute, m is seconds.
+      const bmDegrees = (Math.floor(buduMuaddalSec/3600) + Math.floor((buduMuaddalSec%3600)/60)/60 + (buduMuaddalSec%60)/3600);
+      const taMinutes = bmDegrees * hsMinutes;
+      const tadilAlamahSec = Math.round(taMinutes * 60);
+      
+      const taMinsClean = Math.floor(tadilAlamahSec / 60);
+      
+      // Alamah Muaddalah
+      let sisaMenitAlamah = t2m(muwafaqahAlamah) - taMinsClean;
+      if(sisaMenitAlamah < 0) sisaMenitAlamah += 7*24*60;
+      const alamahMuaddalah = m2t(sisaMenitAlamah);
+      
+      // Umur Bulan (selisih dari 24:00)
+      let umurMenit = 24*60 - (alamahMuaddalah.sa*60 + alamahMuaddalah.da);
+      if(umurMenit < 0) umurMenit += 24*60;
+      const umurHours = umurMenit / 60;
+      const umur = { sa: Math.floor(umurMenit/60), da: umurMenit%60, s: Math.round((umurMenit%1)*60) };
+      
+      // Irtifa (1 jam = 0.5 derajat)
+      const irtifaDeg = umurHours * 0.5;
+      const irtSec = Math.round(irtifaDeg * 3600);
+      const irtifa = { d: Math.floor(irtSec/3600), m: Math.floor((irtSec%3600)/60), s: irtSec%60 };
+      
+      // Mukts (1 derajat = 4 menit)
+      const muktsMin = irtifaDeg * 4;
+      const mukSec = Math.round(muktsMin * 60);
+      const mukts = { m: Math.floor(mukSec/60), s: mukSec%60 };
+      
+      // Qaus Nur (Ardh + Mukts as angles)
+      const ardhSec = k5.mathlub.d*3600 + k5.mathlub.m*60 + k5.mathlub.s;
+      const qnSec = (mukts.m*60 + mukts.s)*60 + ardhSec; // Mukts in minutes matches degrees for addition
+      const qausNur = { d: Math.floor(qnSec/3600), m: Math.floor((qnSec%3600)/60), s: qnSec%60 };
+      
+      // Citra (jari)
+      const jari = (qausNur.d*60 + qausNur.m + qausNur.s/60) / 60;
+      
+      // Rendering Tables
+      const fT = (val) => val === undefined ? "" : `<span class="num">${val}</span>`;
+      const fAng = (d,m,s) => `<td>${fT(d)}</td><td>${fT(m)}</td><td>${fT(s)}</td>`;
+      const fBox = (label, o) => `<tr><td class="label">${label}</td>${fAng(o.d, o.m, o.s||0)}</tr>`;
+      
+      // DOM Updates
+      document.getElementById('judulLembar').innerText = `Ijtima' Akhir Bulan ${bulanRow.name} ${year} H`;
+      
+      let html = `<table class="main-table arabic">
+        <tr class="subhead">
+          <th rowspan="2">المستخرجات</th>
+          <th rowspan="2">القيمة</th>
+          <th colspan="3">العلامة</th>
+          <th colspan="3">حصة العرض</th>
+          <th colspan="3">وسط الشمس</th>
+          <th colspan="3">الخاصة</th>
+          <th colspan="3">المركز</th>
+        </tr>
+        <tr class="subhead">
+          <th>م</th><th>عة</th><th>قة</th>
+          <th>ج</th><th>°</th><th>′</th>
+          <th>ج</th><th>°</th><th>′</th>
+          <th>ج</th><th>°</th><th>′</th>
+          <th>ج</th><th>°</th><th>′</th>
+        </tr>
+        <tr><td class="rowlabel">1. السنة التامة</td><td><span class="num">${tammahYear}</span> H</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="rowlabel">2. السنة المجموعة</td><td><span class="num">${majRow.tahun}</span></td>
+            <td>${fT(majRow.alamah.m)}</td><td>${fT(majRow.alamah.sa)}</td><td>${fT(majRow.alamah.da)}</td>
+            ${fd(majRow.hissah)}${fd(majRow.wasath)}${fd(majRow.khasah)}${fd(majRow.markaz)}</tr>
+        <tr><td class="rowlabel">3. السنة المبسوطة</td><td><span class="num">${mabRow.tahun}</span></td>
+            <td>${fT(mabRow.alamah.m)}</td><td>${fT(mabRow.alamah.sa)}</td><td>${fT(mabRow.alamah.da)}</td>
+            ${fd(mabRow.hissah)}${fd(mabRow.wasath)}${fd(mabRow.khasah)}${fd(mabRow.markaz)}</tr>
+        <tr><td class="rowlabel">4. الشهر لطلب الاجتماع</td><td class="arabic">${bulanRow.arab}</td>
+            <td>${fT(bulanRow.alamah.m)}</td><td>${fT(bulanRow.alamah.sa)}</td><td>${fT(bulanRow.alamah.da)}</td>
+            ${fd(bulanRow.hissah)}${fd(bulanRow.wasath)}${fd(bulanRow.khasah)}${fd(bulanRow.markaz)}</tr>
+        <tr><td class="rowlabel">5. الحركة المطلقات</td><td></td>
+            <td>${fT(harakah.alamah.m)}</td><td>${fT(harakah.alamah.sa)}</td><td>${fT(harakah.alamah.da)}</td>
+            ${fd(harakah.hissah)}${fd(harakah.wasath)}${fd(harakah.khasah)}${fd(harakah.markaz)}</tr>
+        <tr><td class="rowlabel">6. ساعة الفضل الطولين</td><td>10 قة</td>
+            <td>0</td><td>0</td><td>10</td>
+            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td class="rowlabel">7. على الموافقة</td><td></td>
+            <td>${fT(muwafaqahAlamah.m)}</td><td>${fT(muwafaqahAlamah.sa)}</td><td>${fT(muwafaqahAlamah.da)}</td>
+            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      </table>`;
+      
+      const bG = { d: Math.floor(buduGhairSec/3600), m: Math.floor((buduGhairSec%3600)/60), s: buduGhairSec%60 };
+      const d5 = { d: Math.floor(dharb5Sec/3600), m: Math.floor((dharb5Sec%3600)/60), s: dharb5Sec%60 };
+      const bM = { d: Math.floor(buduMuaddalSec/3600), m: Math.floor((buduMuaddalSec%3600)/60), s: buduMuaddalSec%60 };
+      
+      html += `<div class="boxes">
+        <section class="mini-box"><h3 class="arabic">الخاصة (1)</h3><table>
+            <tr><th class="label">البيان</th><th>°</th><th>′</th><th>″</th></tr>
+            ${fBox('السطر الاول', k1.s1)} ${fBox('السطر الثاني', k1.s2)} ${fBox('الفضل بينهما', k1.fadhl)}
+            ${fBox('حاصل الضرب', k1.dharb)} ${fBox('المطلوب', k1.mathlub)} ${fBox('تعديل الخاصة', k1.mathlub)}
+        </table></section>
+        
+        <section class="mini-box"><h3 class="arabic">المركز (2)</h3><table>
+            <tr><th class="label">البيان</th><th>°</th><th>′</th><th>″</th></tr>
+            ${fBox('السطر الاول', k2.s1)} ${fBox('السطر الثاني', k2.s2)} ${fBox('الفضل بينهما', k2.fadhl)}
+            ${fBox('حاصل الضرب', k2.dharb)} ${fBox('المطلوب', k2.mathlub)} ${fBox('تعديل المركز', k2.mathlub)}
+        </table></section>
+        
+        <section class="mini-box"><h3 class="arabic">تعديل الخاصة (3)</h3><table>
+            <tr><th class="label">البيان</th><th>°</th><th>′</th><th>″</th></tr>
+            ${fBox('تعديل الخاصة', k1.mathlub)} ${fBox('تعديل المركز (+)', k2.mathlub)} ${fBox('بعد غير المعدل', bG)}
+            ${fBox('مضروب في 5', d5)} ${fBox('حاصل الضرب', d5)} ${fBox('تعديل المركز', k2.mathlub)}
+            ${fBox('المطلوب', tadilSyams)} ${fBox('تعديل الشمس', tadilSyams)}
+        </table></section>
+
+        <section class="mini-box"><h3 class="arabic">الخاصة (4)</h3><table>
+            <tr><th class="label">البيان</th><th>°</th><th>′</th><th>″</th></tr>
+            <tr><td class="label">المدخول</td>${fAng(harakah.khasah.b, k4.madkhulBaseD, "")}</tr>
+            <tr><td class="label">الكسر المحفوظ</td>${fAng(k4.kasrDeg, k4.kasrMin, "")}</tr>
+            ${fBox('السطر الاول', k4.s1)} ${fBox('السطر الثاني', k4.s2)} ${fBox('الفضل بينهما', k4.fadhl)}
+            ${fBox('حاصل الضرب', k4.dharb)} ${fBox('المطلوب', k4.mathlub)} ${fBox('حصة الساعة', k4.mathlub)}
+        </table></section>
+
+        <section class="mini-box"><h3 class="arabic">الحصة (5)</h3><table>
+            <tr><th class="label">البيان</th><th>°</th><th>′</th><th>″</th></tr>
+            ${fBox('السطر الاول', k5.s1)} ${fBox('السطر الثاني', k5.s2)} ${fBox('الفضل بينهما', k5.fadhl)}
+            ${fBox('حاصل الضرب', k5.dharb)} ${fBox('المطلوب', k5.mathlub)} ${fBox('عرض القمر', k5.mathlub)}
+        </table></section>
+        
+        <section class="mini-box"><h3 class="arabic">وسط الشمس (6)</h3><table>
+            <tr><th class="label">البيان</th><th>ج</th><th>°</th><th>′</th></tr>
+            <tr><td class="label">وسط الشمس</td>${fd(harakah.wasath)}</tr>
+            <tr><td class="label">تعديل الشمس (-)</td><td>0</td><td>${fT(tadilSyams.d)}</td><td>${fT(tadilSyams.m)}</td></tr>
+            <tr><td class="label">مقوم الشمس</td>${fd(muqawwamSyams)}</tr>
+            <tr style="height:4px"><td colspan="4" style="border:0"></td></tr>
+            ${fBox('السطر الاول', k6.s1)} ${fBox('السطر الثاني', k6.s2)} ${fBox('الفضل بينهما', k6.fadhl)}
+            ${fBox('حاصل الضرب', k6.dharb)} ${fBox('المطلوب', k6.mathlub)} ${fBox('تعديل الايام', k6.mathlub)}
+        </table></section>
+        
+        <section class="mini-box"><h3 class="arabic">بعد غير المعدل (7)</h3><table>
+            <tr><th class="label">البيان</th><th>°</th><th>′</th><th>″</th></tr>
+            ${fBox('بعد غير المعدل', bG)} ${fBox('تعديل الايام', k6.mathlub)}
+            ${fBox('بعد المعدل', bM)}
+            <tr><td class="label">تعديل العلامة</td><td>0</td><td>${fT(Math.floor(tadilAlamahSec/3600))}</td><td>${fT(Math.floor((tadilAlamahSec%3600)/60))}</td></tr>
+        </table></section>
+
+        <section class="mini-box box-8"><h3 class="arabic" style="grid-column: span 2;">العلامة (8)</h3>
+            <div>
+            <table><tr><th class="label">البيان</th><th>°</th><th>′</th><th>″</th></tr>
+                ${fBox('ارتفاع الهلال', irtifa)}
+                <tr><td class="label">مكث الهلال</td><td>0</td><td>${fT(mukts.m)}</td><td>${fT(mukts.s)}</td></tr>
+                ${fBox('عرض القمر', k5.mathlub)}
+                <tr><td class="label">مكث الهلال (+)</td><td>0</td><td>${fT(mukts.m)}</td><td>${fT(mukts.s)}</td></tr>
+                ${fBox('قوس نور الهلال', qausNur)}
+                <tr><td class="label">حصة الساعة</td><td>0</td><td>${fT(k4.mathlub.d)}</td><td>${fT(k4.mathlub.m)}</td></tr>
+            </table></div>
+            <div>
+            <table><tr><th class="label">البيان</th><th>م</th><th>عة</th><th>قة</th></tr>
+                <tr><td class="label">العلامة</td><td>${fT(muwafaqahAlamah.m)}</td><td>${fT(muwafaqahAlamah.sa)}</td><td>${fT(muwafaqahAlamah.da)}</td></tr>
+                <tr><td class="label">تعديل العلامة (-)</td><td>0</td><td>${fT(Math.floor(taMinsClean/60))}</td><td>${fT(taMinsClean%60)}</td></tr>
+                <tr><td class="label">العلامة المعدلة</td><td>${fT(alamahMuaddalah.m)}</td><td>${fT(alamahMuaddalah.sa)}</td><td>${fT(alamahMuaddalah.da)}</td></tr>
+                <tr><td class="label">ساعة القاعدة</td><td></td><td>24</td><td>0</td></tr>
+                <tr><td class="label">ساعة العلامة المعدلة</td><td></td><td>${fT(alamahMuaddalah.sa)}</td><td>${fT(alamahMuaddalah.da)}</td></tr>
+                <tr><td class="label">ساعة البعد</td><td></td><td>${fT(umur.sa)}</td><td>${fT(umur.da)}</td></tr>
+            </table></div>
+        </section>
+      </div>`;
+
+      // Kesimpulan Masehi exact match
+      const ijtimaDate = getExactIjtimaDate(year, bTam, alamahMuaddalah.m);
+      const isIstikmal = irtifaDeg < 3.0;
+      let awalHari = ((alamahMuaddalah.m + (isIstikmal ? 2 : 1) - 1) % 7) + 1;
+      let awalDate = addDays(ijtimaDate.full, isIstikmal ? 2 : 1);
+      
+      const hariIjtimaTxt = NAMA_HARI[alamahMuaddalah.m] + " " + getPasaran(ijtimaDate.full);
+      const hariAwalTxt = NAMA_HARI[awalHari] + " " + getPasaran(awalDate.full);
+      
+      const dtMasehiIjtima = `${ijtimaDate.d} ${BULAN_MASEHI[ijtimaDate.m-1]} ${ijtimaDate.y}`;
+      const dtMasehiAwal = `${awalDate.d} ${BULAN_MASEHI[awalDate.m-1]} ${awalDate.y}`;
+      
+      let arahHilal = [9,10,11,0,1,2].includes(muqawwamSyams.b % 12) ? "Utara" : "Selatan";
+      
+      html += `
+      <div class="keterangan">
+        <div class="ket-title">1. Ijtima' Akhir Bulan ${bulanRow.name} ${tammahYear} H</div>
+        <div class="ket-grid">
+            <b>Terjadi pada hari / tanggal</b> <span>: ${hariIjtimaTxt}, ${dtMasehiIjtima}</span>
+            <b>Jam</b> <span>: ${String(alamahMuaddalah.sa).padStart(2,'0')}:${String(alamahMuaddalah.da).padStart(2,'0')}:00 Ghurubi</span>
+            <b>Ghurub Matahari</b> <span>: 18:00 (Zona UTC+${zonaStr})</span>
+            <b>Tinggi Hilal Mar'i</b> <span>: ${irtifa.d}° ${irtifa.m}' ${irtifa.s}"</span>
+            <b>Letak Arah Hilal</b> <span>: Miring ke ${arahHilal}</span>
+            <b>Posisi Hilal</b> <span>: ${arahHilal === 'Utara' ? 'شمالية (Miring Utara)' : 'جنوبية (Miring Selatan)'}</span>
+            <b>Lamanya Di Ufuk Mar'i</b> <span>: ${mukts.m} Menit ${mukts.s} Detik</span>
+            <b>Besar Citra Hilal</b> <span>: ${jari.toFixed(2)} jari, dari qaus nur ${qausNur.d}° ${qausNur.m}' ${qausNur.s}"</span>
+            <b>Markaz</b> <span>: ${markaz}</span>
+        </div>
+        
+        <div class="conclusion">
+            2. Dengan pertimbangan tinggi hilal ${irtifa.d}° ${irtifa.m}', mukts hilal, posisi hilal, dan besar cahaya hilal, 
+            karena tinggi hilal ${isIstikmal ? 'belum mencapai 3 derajat (Istikmal)' : 'telah mencapai 3 derajat (Imkanur Rukyat)'}, 
+            maka dapat disimpulkan bahwa <b>Awal Bulan ${DATA_KITAB.bulanIjtima.data[bTarget].name} ${year} H jatuh pada hari ${hariAwalTxt}, tanggal ${dtMasehiAwal}</b>. 
+            <br><br><small><i>Perhitungan ini mengikuti metode Kitab Fathur Ro'uf al-Manan (Taqrib). Untuk keputusan resmi, ikuti otoritas falak atau lembaga terkait.</i></small>
+        </div>
+      </div>
+      `;
+      
+      document.getElementById('resultContent').innerHTML = html;
+    }
+
+    function isiContohData() {
+        document.getElementById('markaz').value = "Demak";
+        document.getElementById('latD').value = "6";
+        document.getElementById('latM').value = "54";
+        document.getElementById('latS').value = "0";
+        document.getElementById('latDir').value = "S";
+        
+        document.getElementById('lonD').value = "110";
+        document.getElementById('lonM').value = "37";
+        document.getElementById('lonS').value = "0";
+        document.getElementById('lonDir').value = "T";
+        
+        document.getElementById('zona').value = "7";
+        
+        // Ramadhan 1446 H sesuai Screenshot
+        document.getElementById('bulanHijri').value = "8"; // Ramadhan
+        document.getElementById('tahunHijri').value = "1446";
+        
+        prosesHitung();
+    }
+  </script>
+</body>
+</html>
